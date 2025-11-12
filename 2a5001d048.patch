@@ -1,0 +1,546 @@
+From 2a5001d0481cb7c9bee900aec78ccf5abf26db1a Mon Sep 17 00:00:00 2001
+From: ludegao <ludegao@estor.com.cn>
+Date: Fri, 8 Nov 2024 14:49:07 +0800
+Subject: [PATCH] =?UTF-8?q?add=20digioceanfs=E6=9B=BF=E6=8D=A2=E6=96=87?=
+ =?UTF-8?q?=E4=BB=B6=E5=92=8Cignore=E6=96=87=E4=BB=B6?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .gitignore                | 125 ++++++++++++++++++++++
+ build_3.7.12_glusterfs.sh | 167 +++++++++++++++++++++++++++++
+ cl_string_replace.sh      | 218 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 510 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 build_3.7.12_glusterfs.sh
+ create mode 100644 cl_string_replace.sh
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..fc5ba58
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,125 @@
++aclocal.m4
++autom4te.cache
++build
++config.*
++configure
++cscope.*
++tags
++depcomp
++INSTALL
++install-sh
++ltmain.sh
++Makefile
++Makefile.in
++missing
++stamp-h1
++stamp-h2
++test-driver
++*compile
++*.gcda
++*.gcno
++*.sw?
++*~
++*.lo
++*.la
++*.o
++*.tar.gz
++*.rpm
++*.diff
++*.patch
++.libs
++.deps
++.dirstamp
++
++# Softlinks to test and log
++log
++*.vol
++.clang-format
++
++# cmocka unit tests
++*.log
++*.trs
++*_unittest
++
++# Generated files
++site.h
++*.py[co]
++api/examples/__init__.py
++api/examples/setup.py
++api/src/gfapi.map
++cli/src/gluster
++contrib/fuse-util/fusermount-glusterfs
++extras/geo-rep/gsync-sync-gfid
++extras/geo-rep/schedule_georep.py
++extras/snap_scheduler/conf.py
++extras/init.d/glusterd-Debian
++extras/init.d/glusterd-FreeBSD
++extras/init.d/glusterd-Redhat
++extras/init.d/glusterd-SuSE
++extras/init.d/glusterd.plist
++extras/ocf/glusterd
++extras/ocf/volume
++extras/run-gluster.tmpfiles
++extras/systemd/glusterd.service
++extras/systemd/gluster-ta-volume.service
++extras/systemd/glusterfssharedstorage.service
++extras/who-wrote-glusterfs/gitdm
++geo-replication/.tox
++geo-replication/gsyncd.conf
++geo-replication/src/gsyncd
++geo-replication/src/peer_gsec_create
++geo-replication/src/peer_mountbroker
++geo-replication/src/peer_mountbroker.py
++geo-replication/src/set_geo_rep_pem_keys.sh
++geo-replication/src/peer_georep-sshkey.py
++geo-replication/syncdaemon.egg-info
++geo-replication/syncdaemon/conf.py
++geo-replication/tests/unit/.coverage
++geo-replication/tests/unit/cover
++geo-replication/tests/unit/coverage.xml
++geo-replication/tests/unit/nosetests.xml
++geo-replication/tests/unit/results.html
++glusterfs-api.pc
++glusterfs.spec
++glusterfsd/src/glusterd
++glusterfsd/src/glusterfs
++glusterfsd/src/glusterfsd
++glusterfsd/src/gf_attach
++heal/src/glfsheal
++libgfchangelog.pc
++libglusterfs/src/graph.lex.c
++libglusterfs/src/y.tab.c
++libglusterfs/src/y.tab.h
++libglusterfs/src/defaults.c
++libglusterfs/src/cli1-xdr.h
++libglusterfs/src/protocol-common.h
++libtool
++# copied XDR for cyclic libglusterfs <-> rpc-header dependency
++run-tests.sh
++!tests/basic/fuse/Makefile
++!tests/basic/gfapi/Makefile
++tests/env.rc
++tests/utils/arequal-checksum
++xlators/features/glupy/src/__init__.py
++xlators/features/glupy/src/setup.py
++xlators/mount/fuse/utils/mount.glusterfs
++xlators/mount/fuse/utils/mount_glusterfs
++extras/peer_add_secret_pub
++tools/gfind_missing_files/gcrawler
++tools/glusterfind/glusterfind
++tools/glusterfind/src/tool.conf
++# Eventing
++events/src/eventsapiconf.py
++extras/systemd/glustereventsd.service
++events/src/eventtypes.py
++libglusterfs/src/eventtypes.h
++extras/init.d/glustereventsd-Debian
++extras/init.d/glustereventsd-FreeBSD
++extras/init.d/glustereventsd-Redhat
++tools/setgfid2path/src/gluster-setgfid2path
++xlators/features/cloudsync/src/cloudsync-autogen-fops.c
++xlators/features/cloudsync/src/cloudsync-autogen-fops.h
++xlators/features/utime/src/utime-autogen-fops.c
++xlators/features/utime/src/utime-autogen-fops.h
++tests/basic/metadisp/ftruncate
++xlators/features/metadisp/src/fops.c
+diff --git a/build_3.7.12_glusterfs.sh b/build_3.7.12_glusterfs.sh
+new file mode 100644
+index 0000000..4884aad
+--- /dev/null
++++ b/build_3.7.12_glusterfs.sh
+@@ -0,0 +1,167 @@
++#!/bin/bash
++
++################################################################
++# 路径及版本配置
++################################################################
++# codePath: 代码路径
++codePath='/root/src/'
++# tmpPath: 打包过程中临时存放目录
++#          该目录下需要包含脚本 cl_string_replace.sh
++tmpPath='/root/rpmtmp'
++
++# branch：打包分支
++branch='digioceanfs-base-10'
++# version：要打包的tag
++#          如果没有相应tag，则为分支名称；也可以为commit号
++version='digioceanfs-10-1'
++# release：版本号
++release='1'
++# rpmPath：打包完成后，存放rpm包的路径
++rpmPath='/root/RPMS/'
++
++#version='digioceanfs-10.0-56'
++#version='996086bb2d8764f64f5544cb7eb4816e58774df8'
++
++#branch='Infinova-nodatabase'
++#version='Infinova-nodatabase'
++#release='68.4'
++
++#branch='Infinova-base-66'
++#version='Infinova-base-66'
++#release='66.inf.11'
++
++# 系统架构类型的获取
++arch=`arch`
++
++if [ ! -d $tmpPath ]
++then
++    mkdir -p $tmpPath
++fi
++
++
++cp cl_string_replace.sh $tmpPath
++
++################################################################
++# 配置rpmbuild目录
++################################################################
++if [ ! -d /root/rpmbuild ]; then
++    mkdir /root/rpmbuild/
++        for dir in BUILD  BUILDROOT  RPMS  SOURCES  SPECS  SRPMS; do mkdir /root/rpmbuild/${dir}; done
++fi
++
++
++
++################################################################
++# 将git上的管理系统代码 制作成打包需要的压缩包
++################################################################
++cd $codePath
++git checkout $branch
++# git pull
++
++commitID=`git log -n 1 | grep '^commit' | awk '{print $2}'`
++git archive --format=tar $version | gzip > digioceanfs-10.0.tar.gz
++
++mv digioceanfs-10.0.tar.gz $tmpPath
++cd $tmpPath
++rm -rf digioceanfs-10.0
++mkdir digioceanfs-10.0
++tar xzvmf digioceanfs-10.0.tar.gz -C digioceanfs-10.0
++./cl_string_replace.sh digioceanfs-10.0 --gtod
++
++
++################################################################
++# 修改打包脚本spec中的release版本号
++# 将打包脚本spec，放到/root/rpmbuild/SPECS/目录
++# 将压缩包放到/root/rpmbuild/SOURCES/目录
++################################################################
++cd have-changed
++
++# 处理spec脚本
++sed -i 's/Name: .*/Name:             digioceanfs/g' digioceanfs-10.0/digioceanfs.spec
++sed -i 's/Version: .*/Version:          10.0/g' digioceanfs-10.0/digioceanfs.spec
++sed -i 's/Release: .*/Release:          '$release'/g' digioceanfs-10.0/digioceanfs.spec
++sed -i 's/Source0: .*/Source0:          digioceanfs-10.0.tar.gz/g' digioceanfs-10.0/digioceanfs.spec
++cp digioceanfs-10.0/digioceanfs.spec /root/rpmbuild/SPECS/digioceanfs-10.0.spec
++
++# 处理源码压缩包
++tar czvmf digioceanfs-10.0.tar.gz digioceanfs-10.0
++cp digioceanfs-10.0.tar.gz /root/rpmbuild/SOURCES/
++
++
++# if [ "$arch" = "aarch64" ]
++# then
++#     sed -i '7 a %define __debug_install_post   \\' /root/rpmbuild/SPECS/digioceanfs-10.0.spec
++#     sed -i '8 a \ \ %{_rpmconfigdir}/find-debuginfo.sh %{?_find_debuginfo_opts} "%{_builddir}/%{?buildsubdir}"\\' /root/rpmbuild/SPECS/digioceanfs-10.0.spec
++#     sed -i '9 a %{nil}' /root/rpmbuild/SPECS/digioceanfs-10.0.spec
++# fi
++
++################################################################
++# 通过rpmbuild -ba 命令打包
++################################################################
++if [ "$arch" = "aarch64" ]
++then
++    rpmbuild -ba /root/rpmbuild/SPECS/digioceanfs-10.0.spec --nodeps > $tmpPath/rpmbuild_glusterfs_log_`date '+%Y%m%d%H'`
++else
++    rpmbuild -ba /root/rpmbuild/SPECS/digioceanfs-10.0.spec > $tmpPath/rpmbuild_glusterfs_log_`date '+%Y%m%d%H'`
++fi
++
++
++
++################################################################
++# 创建文件系统的release版本目录
++################################################################
++releaseRpmPath=$rpmPath/$branch/$arch/digioceanfs-10.0-$release
++if [ ! -d $releaseRpmPath ]
++then
++    mkdir -p $releaseRpmPath
++fi
++
++
++########################################################################
++# 将打包后/root/rpmbuild/RPMS/<arch>/目录下的rpm包，放入相应release目录
++########################################################################
++RPMList='digioceanfs digioceanfs-api digioceanfs-api-devel digioceanfs-cli digioceanfs-client-xlators digioceanfs-debuginfo digioceanfs-devel digioceanfs-extra-xlators digioceanfs-fuse digioceanfs-geo-replication digioceanfs-libs digioceanfs-rdma digioceanfs-regression-tests digioceanfs-server'
++
++for rpmpak in $RPMList
++do
++    rpmpakpath='/root/rpmbuild/RPMS/'$arch'/'$rpmpak'-3.7.12-'$release'.'$arch'.rpm'
++    if [ -e $rpmpakpath ]
++    then
++        cp $rpmpakpath $releaseRpmPath
++    else
++        echo 'Not found'$rpmpakpath
++    fi
++done
++
++if [ -e /root/rpmbuild/RPMS/noarch/python-digiocean-3.7.12-$release.noarch.rpm ]
++then
++    cp /root/rpmbuild/RPMS/noarch/python-digiocean-3.7.12-$release.noarch.rpm $releaseRpmPath
++else
++    echo 'Not found /root/rpmbuild/RPMS/noarch/python-digiocean-3.7.12-'$release'.noarch.rpm'
++fi
++
++
++
++################################################################
++# 将release版本目录打包
++################################################################
++pushd $rpmPath/$branch/$arch/
++tar cvfzm digioceanfs-10.0-$release.tar.gz digioceanfs-10.0-$release
++popd
++
++
++
++################################################################
++# 将基础信息输出到终端
++################################################################
++echo '###################################################################################################'
++echo '#'
++echo '#                 当前分支: '$branch
++echo '#                 当前版本: digioceanfs-10.0-'$release
++echo '#       当前版本 Commit ID: '$commitID
++echo '#'
++echo '#        文件系统rpm包路径: '$releaseRpmPath
++echo '#'
++echo '###################################################################################################'
++
++
+diff --git a/cl_string_replace.sh b/cl_string_replace.sh
+new file mode 100644
+index 0000000..350ab81
+--- /dev/null
++++ b/cl_string_replace.sh
+@@ -0,0 +1,218 @@
++#!/bin/bash
++
++GlfsString=(gluster GLUSTER Gluster)
++DlfsString=(digiocean DIGIOCEAN Digiocean)
++ZlfsString=(zonkin ZONKIN Zonkin)
++
++GlfsFileName=(gluster Gluster)
++ZlfsFileName=(zonkin Zonkin)
++DlfsFileName=(digiocean Digiocean)
++
++help() {
++    echo "    Usage: cl_string_replace.sh [source_path] --[option]"
++    echo "    option:[gtod|dtog]"
++    echo "    --gtod: put the gluster replace digiocean"
++    echo "    --gtoz: put the gluster replace zonkin"
++    echo "    --dtog: put the digiocean replace gluster"
++    echo "    --dtoz: put the digiocean replace zonkin"
++    echo "    --ztog: put the zonkin replace gluster"
++}
++
++file_context_replace() {
++    echo "|"$1,$2,$3
++    sed -i "s/$2/$3/g" `grep $2 -rl $1`
++}
++
++
++file_name_replace() {
++    echo "|"$1,$2,$3
++    find $1 -name "*$2*"|tac|sed "s/\(.*\)\($2\)\(.*\)/mv \1\2\3 \1$3\3/"|sh
++}
++
++#file_name_replace /root/djc/digioceanfs-master digiocean gluster
++
++
++#file_context_replace /root/djc/glusterfs-master  digiocean gluster
++
++if [ $# -ne 2 ];then
++    help
++    exit 1
++fi
++
++if [ $2 = "--gtod" ];then
++    cd $1
++    str=`pwd`
++    str2=`echo ${str##*/}`
++    cd ../
++    rm -rf have-changed
++    mkdir have-changed
++    cp $str2 have-changed -a
++    cd have-changed
++    cd $str2
++    finddirectory=`pwd`
++    cd ../
++#    glusterfs-3.7.12 use follow
++#    sed -i 's/strncmp (base, "glusterfsd", 10)/strncmp (base, "digioceanfsd", 12)/g' `grep "strncmp (base, \"glusterfsd\", 10)" -rl $finddirectory`
++#    sed -i 's/strncmp (base, "glusterfsd", 10)/strncmp (base, "digioceanfsd", 12)/g' `grep "strncmp (base, \"glusterfsd\", 10)" -rl $finddirectory`
++    sed -i 's/strncmp(base, "glusterd", 8)/strncmp(base, "digioceand", 10)/g' `grep "strncmp(base, \"glusterd\", 8)" -rl $finddirectory`
++    sed -i 's/strncmp(base, "glusterd", 8)/strncmp(base, "digioceand", 10)/g' `grep "strncmp(base, \"glusterd\", 8)" -rl $finddirectory`
++    echo "---------------replace the file context---------------"
++    echo "|"
++    echo "|put the gluster replace digiocean begin"
++    for index in `seq ${#GlfsString[@]}`;do
++        index=`expr $index - 1`
++        file_context_replace $finddirectory ${GlfsString[$index]} ${DlfsString[$index]}
++    done
++    echo "|put the gluster replace digiocean end"
++    echo "|"
++    echo "-----------------modify the file name-----------------"
++    echo "|"
++    echo "|"
++    echo "|put the gluster replace digiocean begin"
++    for index in `seq ${#GlfsFileName[@]}`;do
++        index=`expr $index - 1`
++        file_name_replace $finddirectory ${GlfsFileName[$index]} ${DlfsFileName[$index]}
++    done
++    echo "|put the gluster replace digiocean end"
++    echo "|"
++    echo "------------------------------------------------------"
++elif [ $2 = "--gtoz" ];then
++    cd $1
++    str=`pwd`
++    str2=`echo ${str##*/}`
++    cd ../
++    rm -rf have-changed
++    mkdir have-changed
++    cp $str2 have-changed -a
++    cd have-changed
++    cd $str2
++    finddirectory=`pwd`
++    cd ../
++    sed -i 's/strncmp (base, "glusterfsd", 10)/strncmp (base, "zonkinfsd", 9)/g' `grep "strncmp (base, \"glusterfsd\", 10)" -rl $finddirectory`
++    sed -i 's/strncmp (base, "glusterd", 8)/strncmp (base, "zonkind", 7)/g' `grep "strncmp (base, \"glusterd\", 8)" -rl $finddirectory`
++    echo "---------------replace the file context---------------"
++    echo "|"
++    echo "|put the gluster replace zonkin begin"
++    for index in `seq ${#GlfsString[@]}`;do
++        index=`expr $index - 1`
++        file_context_replace $finddirectory ${GlfsString[$index]} ${ZlfsString[$index]}
++    done
++    echo "|put the gluster replace zonkin end"
++    echo "|"
++    echo "-----------------modify the file name-----------------"
++    echo "|"
++    echo "|"
++    echo "|put the gluster replace zonkin begin"
++    for index in `seq ${#GlfsFileName[@]}`;do
++        index=`expr $index - 1`
++        file_name_replace $finddirectory ${GlfsFileName[$index]} ${ZlfsFileName[$index]}
++    done
++    echo "|put the gluster replace zonkin end"
++    echo "|"
++    echo "------------------------------------------------------"
++elif [ $2 = "--dtog" ];then
++    cd $1
++    str=`pwd`
++    str2=`echo ${str##*/}`
++    cd ../
++    rm -rf have-changed
++    mkdir have-changed
++    cp $str2 have-changed -a
++    cd have-changed
++    cd $str2
++    finddirectory=`pwd`
++    cd ../
++    sed -i 's/strncmp (base, "digioceanfsd", 12)/strncmp (base, "glusterfsd", 10)/g' `grep "strncmp (base, \"digioceanfsd\", 12)" -rl $finddirectory`
++    sed -i 's/strncmp (base, "digioceand", 10)/strncmp (base, "glusterd", 8)/g' `grep "strncmp (base, \"digioceand\", 10)" -rl $finddirectory`
++    echo "---------------replace the file context---------------"
++    echo "|"
++    echo "|put the digiocean replace gluster begin"
++    for index in `seq ${#DlfsString[@]}`;do
++        index=`expr $index - 1`
++        file_context_replace $finddirectory ${DlfsString[$index]} ${GlfsString[$index]}
++    done
++    echo "|put the digiocean replace gluster end"
++    echo "|"
++    echo "-----------------modify the file name-----------------"
++    echo "|"
++    echo "|"
++    echo "|put the digiocean replace gluster begin"
++    for index in `seq ${#DlfsFileName[@]}`;do
++        index=`expr $index - 1`
++        file_name_replace $finddirectory ${DlfsFileName[$index]} ${GlfsFileName[$index]}
++    done
++    echo "|put the digiocean replace gluster end"
++    echo "|"
++    echo "------------------------------------------------------"
++elif [ $2 = "--dtoz" ];then
++    cd $1
++    str=`pwd`
++    str2=`echo ${str##*/}`
++    cd ../
++    rm -rf have-changed
++    mkdir have-changed
++    cp $str2 have-changed -a
++    cd have-changed
++    cd $str2
++    finddirectory=`pwd`
++    cd ../
++    sed -i 's/strncmp (base, "digioceanfsd", 12)/strncmp (base, "zonkinfsd", 9)/g' `grep "strncmp (base, \"digioceanfsd\", 12)" -rl $finddirectory`
++    sed -i 's/strncmp (base, "digioceand", 10)/strncmp (base, "zonkind", 7)/g' `grep "strncmp (base, \"digioceand\", 10)" -rl $finddirectory`
++    echo "---------------replace the file context---------------"
++    echo "|"
++    echo "|put the digiocean replace zonkin begin"
++    for index in `seq ${#DlfsString[@]}`;do
++        index=`expr $index - 1`
++        file_context_replace $finddirectory ${DlfsString[$index]} ${ZlfsString[$index]}
++    done
++    echo "|put the digiocean replace zonkin end"
++    echo "|"
++    echo "-----------------modify the file name-----------------"
++    echo "|"
++    echo "|"
++    echo "|put the digiocean replace zonkin begin"
++    for index in `seq ${#DlfsFileName[@]}`;do
++        index=`expr $index - 1`
++        file_name_replace $finddirectory ${DlfsFileName[$index]} ${ZlfsFileName[$index]}
++    done
++    echo "|put the digiocean replace zonkin end"
++    echo "|"
++    echo "------------------------------------------------------"
++elif [ $2 = "--ztog" ];then
++    cd $1
++    str=`pwd`
++    str2=`echo ${str##*/}`
++    cd ../
++    rm -rf have-changed
++    mkdir have-changed
++    cp $str2 have-changed -a
++    cd have-changed
++    cd $str2
++    finddirectory=`pwd`
++    cd ../
++    sed -i 's/strncmp (base, "zonkinfsd", 9)/strncmp (base, "glusterfsd", 10)/g' `grep "strncmp (base, \"zonkinfsd\", 9)" -rl $finddirectory`
++    sed -i 's/strncmp (base, "zonkind", 7)/strncmp (base, "glusterd", 8)/g' `grep "strncmp (base, \"zonkind\", 7)" -rl $finddirectory`
++    echo "---------------replace the file context---------------"
++    echo "|"
++    echo "|put the zonkin replace gluster begin"
++    for index in `seq ${#ZlfsString[@]}`;do
++        index=`expr $index - 1`
++        file_context_replace $finddirectory ${ZlfsString[$index]} ${GlfsString[$index]}
++    done 
++    echo "|put the zonkin replace gluster end"
++    echo "|"
++    echo "-----------------modify the file name-----------------"
++    echo "|"
++    echo "|"
++    echo "|put the zonkin replace gluster begin"
++    for index in `seq ${#ZlfsFileName[@]}`;do
++        index=`expr $index - 1`
++        file_name_replace $finddirectory ${ZlfsFileName[$index]} ${GlfsFileName[$index]}
++    done 
++    echo "|put the zonkin replace gluster end"
++    echo "|"
++    echo "------------------------------------------------------"
++else
++    help
++    exit 1
++fi 

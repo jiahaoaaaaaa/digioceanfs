@@ -1,0 +1,21 @@
+From ae5ba03cd9e5ee25085ff6b43dd5c5a7e9f71735 Mon Sep 17 00:00:00 2001
+From: root <root@node-1.Estor>
+Date: Thu, 5 Dec 2024 16:29:39 +0800
+Subject: [PATCH] =?UTF-8?q?=E4=BF=AE=E6=94=B9.sh=E6=9D=83=E9=99=90?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ build_3.7.12_glusterfs.sh | 0
+ cl_string_replace.sh      | 0
+ 2 files changed, 0 insertions(+), 0 deletions(-)
+ mode change 100644 => 100755 build_3.7.12_glusterfs.sh
+ mode change 100644 => 100755 cl_string_replace.sh
+
+diff --git a/build_3.7.12_glusterfs.sh b/build_3.7.12_glusterfs.sh
+old mode 100644
+new mode 100755
+diff --git a/cl_string_replace.sh b/cl_string_replace.sh
+old mode 100644
+new mode 100755
